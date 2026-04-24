@@ -1,7 +1,7 @@
+from gettext import install
 import requests
 import pandas as pd
 from sqlalchemy import create_engine, text
-
 response = requests.get('https://universalis.app/api/v2/extra/stats/least-recently-updated?world=louisoix')
 data = response.json()
 d_items = data['items']
@@ -19,20 +19,14 @@ for item in d_items:
     cleaned['worldID'].append(item['worldID'])
     cleaned['worldName'].append(item['worldName'])
 
-print(d_items)
+# print(d_items)
 
-engine = create_engine("dialect+driver://username:password@host:port/database",echo=True) # creates an Engine object that manages connections., now i need to know how to execute the connection where it sends the imported and cleaned "data" to the DB
+# now i need to create an engine
+engine = create_engine("postgresql://neondb_owner:npg_3R2XoTSwUrtD@ep-billowing-boat-abutsytw-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require")
 
-# question is, how do i go about doing this, i think i need to run the connection
+# ive made the engine make a connection, now i need to load the sql into the database.
 
-with engine.connect() as connection:  # this can either execute SQL or insert data, how does it insert data
-# what are with statements anyway?
-
-insert = text(
-    """
-
-    """
-)  # text function allows one to write SQL. This is the SQL you will write.
-connection.execute(insert, d_items) # this should hopefully have us send the data over. we will stop here
-
-# print(engine)
+load_d_items = text (
+    "insert into "
+)
+# before i do that i need to create a sql script to put into my DB. i wonder if there is a way for me to load the sql scipt from python into the DB. im sure it is possible 
