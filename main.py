@@ -28,7 +28,8 @@ cleaned['lastUploadTime'] = dt
 print(cleaned['lastUploadTime'])
 
 
-# now i can create db sql script.
+# now i can create db sql script. fdfds
+
 
 
 """
