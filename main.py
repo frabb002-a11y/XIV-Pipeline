@@ -1,10 +1,7 @@
 from typing import Any
-from gettext import install
 import requests
-import http.client
 from datetime import datetime
 import pandas as pd
-from pprint import pprint
 from sqlalchemy import create_engine, text
 
 # Imports required for the script
