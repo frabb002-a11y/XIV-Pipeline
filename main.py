@@ -92,3 +92,7 @@ df_cleaned.to_sql(
     if_exists="append", 
     index=False )
 
+# turn them into def functions to all be called by def main(). 
+# make it so that it can run more than once # create a scheduler 
+# for eaach def create a failure safeguard and true failure output outputting what caused the failure
+# 30 minutes practicing SQL everyday
