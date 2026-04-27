@@ -16,42 +16,51 @@ d_items = data['items']
 # gets recently updated infromation from the api and stores it in d_items
 
 cleaned = {
-    'itemID': [],
-    'lastUploadTime': [],
-    'worldID': [],
-    'worldName': []
+    'itemid': [],
+    'lastuploadtime': [],
+    'worldid': [],
+    'worldname': []
 }
 
 # Creates dictionary for the cleaned data to be held.
 
 for item in d_items:
-    cleaned['itemID'].append(int(item['itemID']))
-    cleaned['lastUploadTime'].append(
+    cleaned['itemid'].append(int(item['itemID']))
+    cleaned['lastuploadtime'].append(
         datetime.fromtimestamp(
-            round(item['lastUploadTime'] / 1000, None)).strftime("%Y-%m-%d %H:%M:%S")
+            round(item['lastUploadTime'] / 1000, None))
         )
-    cleaned['worldID'].append(item['worldID'])
-    cleaned['worldName'].append(item['worldName'])
+    cleaned['worldid'].append(item['worldID'])
+    cleaned['worldname'].append(item['worldName'])
 
 # Primary data cleaning pass, corrects lastuploadtime format
 
-url = "https://v2.xivapi.com/api/sheet/Item/"
 print(cleaned)
-# Database which has item name for the corresponding ItemID
 
-for i, item in enumerate[Any](cleaned['itemID']) : # why would i class things? later ig.
+url = "https://v2.xivapi.com/api/sheet/Item/"
+# print(cleaned)
+
+# Database which has item name for the corresponding itemid
+
+for i, item in enumerate[Any](cleaned['itemid']) : # why would i class things? later ig.
     n_url = f"{url}{item}?fields=Name"
     response = requests.get(n_url)
     xiv_data = response.json()
-    cleaned['itemID'][i] = xiv_data['fields']['Name']
+    cleaned['itemid'][i] = xiv_data['fields']['Name']
   
  # takes a long time to execute. i should find a way to execute all urls all at once.
  # im thinking, build the url list and then execute the list like that.
- # loops through each item in the ItemID list and replaces itemID with their proper names
+ # loops through each item in the itemid list and replaces itemid with their proper names
+
+
+# commented to reduce loading time for now
+# print(cleaned['worldid'])
 
 df_cleaned = pd.DataFrame(cleaned)
 print(df_cleaned)
 
+
+# When turning it into a dataframe WORLDID dissapears. leave for later                     
 # Data has been cleaned. time to load the data into PostGres
 
 engine = create_engine("postgresql://neondb_owner:npg_3R2XoTSwUrtD@ep-billowing-boat-abutsytw-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",echo = True)
@@ -63,10 +72,10 @@ create_db = text (
 ;
 
 CREATE TABLE IF NOT EXISTS xiv_data.raw_data (
-    itemID VARCHAR(50) PRIMARY KEY,
-    lastUploadTime VARCHAR(50),
-    worldID INTEGER,
-    worldName VARCHAR(50) 
+    itemid VARCHAR(50) PRIMARY KEY,
+    lastuploadtime VARCHAR(50),
+    worldid INTEGER,
+    worldname VARCHAR(50) 
 );"""
 )
 
@@ -77,8 +86,12 @@ with engine.begin() as conn:
 
 # Creates DB in postgres if it does not exist already.
 
-# now i need to insert the data into the datatavbkles
-"""
-# before i do that i need to create a sql script to put into my DB.
-#  i wonder if there is a way for me to load the sql scipt from python into the DB. im sure it is possible 
-"""
+# now i need to insert the data into the datatables
+
+df_cleaned.to_sql( 
+    name="raw_data",
+    con=engine, 
+    schema="xiv_data", 
+    if_exists="append", 
+    index=False )
+
