@@ -2,3 +2,12 @@ requests==2.33.1
 pandas==3.0.2
 sqlalchemy==2.0.49
 psycopg2-binary==2.9.12
+
+
+# make it so that it can run automatically
+# make it so that it can run multiple times
+
+
+# turn them into def functions to all be called by def main(). 
+# for eaach def create a failure safeguard and true failure output outputting what caused the failure
+# 30 minutes practicing SQL everyday
