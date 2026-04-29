@@ -2,7 +2,7 @@ name: XIV Pipeline
 
 on:
   schedule:
-    - cron: "*/10 * * * *"   # runs every hour
+    - cron: "0 * * * *"   # runs every hour
   workflow_dispatch:      # allows manual runs
 
 jobs:

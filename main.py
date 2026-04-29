@@ -2,6 +2,7 @@ import requests
 import time
 from datetime import datetime
 import pandas as pd
+import os
 from sqlalchemy import create_engine, text
 from concurrent.futures import ThreadPoolExecutor
 
@@ -61,8 +62,7 @@ df_names = pd.DataFrame(names)
 # When turning it into a dataframe WORLDID dissapears. leave for later                     
 # Data has been cleaned. time to load the data into PostGres
 
-engine = create_engine("postgresql://neondb_owner:npg_3R2XoTSwUrtD@ep-billowing-boat-abutsytw-pooler.eu-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require",echo=False)
-
+engine = create_engine(os.getenv("DATABASE_URL"), echo=False)
 # creates engine which can connect to the DB.
 
 create_db = text (
