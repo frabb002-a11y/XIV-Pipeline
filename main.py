@@ -1,4 +1,5 @@
 from numpy import extract
+from pandas.core.internals.blocks import new_block
 import requests
 import time
 from datetime import datetime
@@ -138,14 +139,13 @@ DROP TABLE IF EXISTS xiv_data.raw_data;
 """
 )
 with engine.begin() as conn:
-    conn.execute(reset)
     conn.execute(create_db)
     conn.execute(insert_raw_data, rows_data)
     conn.execute(insert_name_data, rows_name)
     response = conn.execute(extract_name_data)
     data = response.mappings().all()
 
-print(data)
+
 
 new_names = {
     'itemid': [],
@@ -170,8 +170,40 @@ with ThreadPoolExecutor(20) as executioner:
     execution = f"execution time: {round((end - start), 2)} seconds"
     print(execution)
 
-print(new_names)
 
+df_new_names = pd.DataFrame(new_names)
+rows_new_names = df_new_names.to_dict("records")
+
+
+insert_new_names = text(
+    """
+    MERGE INTO xiv_data.name_data AS t
+    USING (
+        VALUES (:itemid, :itemname)
+    ) AS s (itemid, itemname)
+    ON t.itemid = s.itemid
+
+    WHEN MATCHED THEN
+        UPDATE SET
+            itemid = s.itemid,
+            itemname = s.itemname
+
+    WHEN NOT MATCHED THEN
+        INSERT (itemid,itemname)
+        VALUES (s.itemid,s.itemname);
+    """
+)
+
+query_filled_names = text(
+    """select *
+    from xiv_data.name_data
+    """
+)
+
+with engine.begin() as conn:
+    conn.execute(insert_new_names,rows_new_names)
+    new_data = conn.execute(query_filled_names)
+    data = new_data.fetchall()
 
 """
 print(new_names)
@@ -195,10 +227,10 @@ with engine.begin() as conn:
 # merge, insert or update just the nameid into namedata database
 # retrieve all namedata from database which has blank itemnames
 # iterate through those itemids to get all the namedata complete 
-# insert all those itemids into namedata 
+# insert all those itemids into namedata complete
+# partition and clean your work
 
-
-# the second is more complex. it needs python to retrieve data from the db and then see if the data exists, if not then it generates. i think while the second is more complicated it would be more intereesting. 
-# i completed a local running version, password is retrieved from password.py. i created a second datatable full of names. this will set us up for "filling" only if data exists in the DB.
+# Multiple files
+# Def function
 
 """
