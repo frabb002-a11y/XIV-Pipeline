@@ -1,19 +1,17 @@
-from concurrent.futures import ThreadPoolExecutor
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from password import DATABASE_URL
-import time
 import os
 
-def prime_connection(db_url = os.getenv("DATABASE_URL"), ECHO = False) :
+def prime_connection(db_url = os.getenv("DATABASE_URL"), ECHO = False, connect_timeout_s: int = 5) :
     try:
-        engine = create_engine(db_url, echo=ECHO)
+        engine = create_engine(db_url, echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
         return engine
     except Exception as e:
         print(e)
         print("Cannot retrieve database url, Running Local mode")
         try:
-            engine = create_engine(DATABASE_URL(), echo=ECHO)
+            engine = create_engine(DATABASE_URL(), echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
             return engine
         except Exception as e2:
             raise ValueError("internal database url is invalid, please check password.py")

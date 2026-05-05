@@ -3,10 +3,9 @@ import time
 import requests
 import pandas as pd
 from sqlalchemy import text
+from load import execute_connection
 
-
-
-def enrich_data(null_namedata,engine):
+def enrich_data(null_namedata : list[dict],engine):
 
     updated_namedata = {
         'itemid': [],
