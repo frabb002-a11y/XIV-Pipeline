@@ -3,6 +3,7 @@ from extract import extract
 from transform import transform
 from load import prime_connection, execute_connection
 from enrich import enrich_data
+from _1extract import extract_marketable
 import logging
 
 
@@ -15,7 +16,8 @@ log = logging.getLogger(__name__)
 
 
 def main():
-    dev_mode = dev_overiding(False)
+    dev_mode = dev_overiding(True)
+    extract_marketable()
     item_info = extract()
     df_cleaned, df_names = transform(item_info)
     rows_data = df_cleaned.to_dict("records")
@@ -23,6 +25,7 @@ def main():
     engine = prime_connection()
     null_namedata = execute_connection(rows_data, rows_name, engine,dev_mode)
     enrich_data(null_namedata, engine)
+    print(df_cleaned)
 
 
 if __name__ == "__main__":

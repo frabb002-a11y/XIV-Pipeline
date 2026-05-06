@@ -2,7 +2,8 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import requests
 import pandas as pd
-from sqlalchemy import engine, text
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
 from load import prime_connection
 import logging
 
@@ -13,7 +14,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-def enrich_data(null_namedata : list[dict]| None = None,engine : engine | None = None):
+def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None = None):
 
     if null_namedata is None:
         null_namedata = []
@@ -44,7 +45,7 @@ def enrich_data(null_namedata : list[dict]| None = None,engine : engine | None =
         updated_namedata['itemname'] = list(executioner.map(fetch_name,updated_namedata['itemid']))
         end = time.time()
         execution = f"execution time: {round((end - start), 2)} seconds"
-        print(execution)
+        log.info(execution)
 
     log.info("updating namedata.")
 

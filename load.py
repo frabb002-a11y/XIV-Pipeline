@@ -1,3 +1,4 @@
+from typing import Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 import os
@@ -19,7 +20,6 @@ def prime_connection(db_url: str | None = None, ECHO: bool = False, connect_time
         engine = create_engine(db_url, echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
         return engine
     except Exception as e:
-        print(e)
         log.info("Cannot fetch database url, Running Local mode.")
         try:
             engine = create_engine(DATABASE_URL(), echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
@@ -29,7 +29,7 @@ def prime_connection(db_url: str | None = None, ECHO: bool = False, connect_time
             raise ValueError()
 
 
-def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict]| None = None,engine: Engine| None = None, dev_mode : ANY | None = None):
+def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict]| None = None,engine: Engine| None = None, dev_mode : Any | None = None):
     
     if dev_mode is None:
         dev_mode = dev_overiding()
