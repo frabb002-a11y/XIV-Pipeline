@@ -2,11 +2,27 @@ from concurrent.futures import ThreadPoolExecutor
 import time
 import requests
 import pandas as pd
-from sqlalchemy import text
-from load import execute_connection
+from sqlalchemy import engine, text
+from load import prime_connection
+import logging
 
-def enrich_data(null_namedata : list[dict],engine):
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    force=True,
+)
+log = logging.getLogger(__name__)
 
+def enrich_data(null_namedata : list[dict]| None = None,engine : engine | None = None):
+
+    if null_namedata is None:
+        null_namedata = []
+
+    if engine is None:
+        engine = prime_connection()
+        
+    
+    
     updated_namedata = {
         'itemid': [],
         'itemname' : []
@@ -14,6 +30,8 @@ def enrich_data(null_namedata : list[dict],engine):
 
     for item in null_namedata:
         updated_namedata['itemid'].append(item['itemid'])
+
+    log.info("fetching name data for unknown names, this may take a few seconds...")
 
     def fetch_name(itemid):
         url = f"https://v2.xivapi.com/api/sheet/Item/{itemid}?fields=Name"
@@ -28,6 +46,7 @@ def enrich_data(null_namedata : list[dict],engine):
         execution = f"execution time: {round((end - start), 2)} seconds"
         print(execution)
 
+    log.info("updating namedata.")
 
     df_updated_namedata = pd.DataFrame(updated_namedata)
     rows_inserting_namedata = df_updated_namedata.to_dict("records")
@@ -52,8 +71,10 @@ def enrich_data(null_namedata : list[dict],engine):
         """
     )
 
+    log.info("namedata updated and uploaded to database.")
     with engine.begin() as conn:
         conn.execute(insert_new_names,rows_inserting_namedata)
+    log.info("complete.")
 
 if __name__ == "__main__":
     enrich_data()
