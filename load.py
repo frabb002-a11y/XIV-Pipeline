@@ -29,7 +29,13 @@ def prime_connection(db_url: str | None = None, ECHO: bool = False, connect_time
             raise ValueError()
 
 
-def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict]| None = None,engine: Engine| None = None, dev_mode : Any | None = None):
+def execute_connection(
+    rows_data: list[dict] | None = None,
+    rows_name: list[dict] | None = None,
+    rows_worlds: list[dict] | None = None,
+    engine: Engine | None = None,
+    dev_mode: Any | None = None,
+):
     
     if dev_mode is None:
         dev_mode = dev_overiding()
@@ -37,6 +43,8 @@ def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict
         rows_data = []
     if rows_name is None:
         rows_name = []
+    if rows_worlds is None:
+        rows_worlds = []
     if engine is None:
         engine = prime_connection()
 
@@ -45,17 +53,24 @@ def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict
     reset = text ( """
     DROP TABLE IF EXISTS xiv_data.name_data;
     DROP TABLE IF EXISTS xiv_data.raw_data;
+    DROP TABLE IF EXISTS xiv_data.worlds;
     """
     )
     create_db = text ("""
     CREATE SCHEMA IF NOT EXISTS xiv_data
     ;
 
+    CREATE TABLE IF NOT EXISTS xiv_data.worlds (
+        worldid INTEGER PRIMARY KEY,
+        worldname VARCHAR(50)
+    );
+
     CREATE TABLE IF NOT EXISTS xiv_data.raw_data (
-        itemid INT PRIMARY KEY,
-        lastuploadtime VARCHAR(50),
         worldid INTEGER,
-        worldname VARCHAR(50) 
+        itemid INT,
+        lastuploadtime TIMESTAMP,
+        ingested_at TIMESTAMP,
+        PRIMARY KEY (worldid, itemid)
     );
 
     CREATE TABLE IF NOT EXISTS xiv_data.name_data (
@@ -65,22 +80,40 @@ def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict
     """)
     # Creates DB Schema and two tabbles, raw data and name data.
 
+    insert_worlds = text(
+        """
+        MERGE INTO xiv_data.worlds t
+            USING (
+            VALUES (:worldid, :worldname)
+            ) AS s (worldid, worldname)
+        ON t.worldid = s.worldid
+
+        WHEN MATCHED THEN
+            UPDATE SET
+                worldname = s.worldname
+
+        WHEN NOT MATCHED THEN
+            INSERT (worldid, worldname)
+            VALUES (s.worldid, s.worldname);
+        """
+    )
+
     insert_raw_data = text ("""
     MERGE INTO xiv_data.raw_data t
         USING (
-        VALUES (:itemid, :lastuploadtime, :worldid, :worldname)
-        ) AS s (itemid, lastuploadtime, worldid, worldname)
-    ON t.itemid = s.itemid
+        VALUES (:itemid, :lastuploadtime, :ingested_at, :worldid)
+        ) AS s (itemid, lastuploadtime, ingested_at, worldid)
+    ON t.worldid = s.worldid AND t.itemid = s.itemid
 
     WHEN MATCHED THEN
         UPDATE SET
             lastuploadtime = s.lastuploadtime,
-            worldid = s.worldid,
-            worldname = s.worldname
+            ingested_at = s.ingested_at,
+            worldid = s.worldid
 
     WHEN NOT MATCHED THEN
-        INSERT (itemid, lastuploadtime, worldid, worldname)
-        VALUES (s.itemid, s.lastuploadtime, s.worldid, s.worldname);
+        INSERT (itemid, lastuploadtime, ingested_at, worldid)
+        VALUES (s.itemid, s.lastuploadtime, s.ingested_at, s.worldid);
     """
     )
 
@@ -120,6 +153,7 @@ def execute_connection(rows_data: list[dict] | None = None, rows_name: list[dict
             conn.execute(reset)
         log.info("creating database and datatables.")
         conn.execute(create_db)
+        conn.execute(insert_worlds, rows_worlds)
         log.info("inserting table data.")
         conn.execute(insert_raw_data, rows_data)
         conn.execute(insert_name_data, rows_name)

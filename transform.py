@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 from extract import extract
 import logging
@@ -10,20 +10,27 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-def transform(items_info=None) -> tuple[pd.DataFrame, pd.DataFrame] :
+def transform(items_info=None) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     if items_info is None:
         items_info = extract()
+
+    ingested_at_utc = datetime.now(timezone.utc)
 
     cleaned = {
         'itemid': [],
         'lastuploadtime': [],
+        'ingested_at': [],
         'worldid': [],
-        'worldname' : []
     }
 
     names = {
         'itemid': [],
         'itemname' : [],
+    }
+
+    worlds = {
+        "worldid": [],
+        "worldname": [],
     }
 
     log.info("Checking data quality and transforming data.")
@@ -56,19 +63,22 @@ def transform(items_info=None) -> tuple[pd.DataFrame, pd.DataFrame] :
 
         cleaned["itemid"].append(item_id)
         cleaned["lastuploadtime"].append(datetime.fromtimestamp(last_ms / 1000))
+        cleaned["ingested_at"].append(ingested_at_utc)
         cleaned["worldid"].append(world_id)
-        cleaned["worldname"].append(world_name)
 
         names["itemid"].append(item_id)
         names["itemname"].append("")
 
+        worlds["worldid"].append(world_id)
+        worlds["worldname"].append(world_name)
 
-    return pd.DataFrame(cleaned), pd.DataFrame(names)
+    return pd.DataFrame(cleaned), pd.DataFrame(names), pd.DataFrame(worlds)
 
 def main():
-    df_cleaned, df_names = transform()
+    df_cleaned, df_names, df_worlds = transform()
     print(df_cleaned)
     print(df_names)
+    print(df_worlds)
 
 if __name__ == "__main__":
     main()
