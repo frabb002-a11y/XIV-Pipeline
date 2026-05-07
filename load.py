@@ -33,6 +33,7 @@ def execute_connection(
     rows_data: list[dict] | None = None,
     rows_name: list[dict] | None = None,
     rows_worlds: list[dict] | None = None,
+    rows_finance: list[dict] | None = None,
     engine: Engine | None = None,
     dev_mode: Any | None = None,
 ):
@@ -45,27 +46,30 @@ def execute_connection(
         rows_name = []
     if rows_worlds is None:
         rows_worlds = []
+    if rows_finance is None:
+        rows_finance = []
     if engine is None:
         engine = prime_connection()
 
     log.info("Creating database.")
 
     reset = text ( """
-    DROP TABLE IF EXISTS xiv_data.name_data;
-    DROP TABLE IF EXISTS xiv_data.raw_data;
-    DROP TABLE IF EXISTS xiv_data.worlds;
+    DROP TABLE IF EXISTS xiv_data.id_names;
+    DROP TABLE IF EXISTS xiv_data.recently_updated;
+    DROP TABLE IF EXISTS xiv_data.world_names;
+    DROP TABLE IF EXISTS xiv_data.finance_data;
     """
     )
     create_db = text ("""
     CREATE SCHEMA IF NOT EXISTS xiv_data
     ;
 
-    CREATE TABLE IF NOT EXISTS xiv_data.worlds (
+    CREATE TABLE IF NOT EXISTS xiv_data.world_names (
         worldid INTEGER PRIMARY KEY,
         worldname VARCHAR(50)
     );
 
-    CREATE TABLE IF NOT EXISTS xiv_data.raw_data (
+    CREATE TABLE IF NOT EXISTS xiv_data.recently_updated (
         worldid INTEGER,
         itemid INT,
         lastuploadtime TIMESTAMP,
@@ -73,16 +77,27 @@ def execute_connection(
         PRIMARY KEY (worldid, itemid)
     );
 
-    CREATE TABLE IF NOT EXISTS xiv_data.name_data (
+    CREATE TABLE IF NOT EXISTS xiv_data.id_names (
         itemid INT PRIMARY KEY,
         itemname VARCHAR(100)
     );
+
+    CREATE TABLE IF NOT EXISTS xiv_data.finance_data (
+        worldid INTEGER,
+        itemid INT,
+        minlisting_price REAL,
+        recentpurchase_price REAL,
+        average_sale_price REAL,
+        daily_sale_velocity REAL,
+        approx_gil_per_day REAL,
+        PRIMARY KEY (worldid, itemid)
+    );
     """)
-    # Creates DB Schema and two tabbles, raw data and name data.
+    # Creates DB Schema and required tabbles, raw data and name data.
 
     insert_worlds = text(
         """
-        MERGE INTO xiv_data.worlds t
+        MERGE INTO xiv_data.world_names t
             USING (
             VALUES (:worldid, :worldname)
             ) AS s (worldid, worldname)
@@ -99,7 +114,7 @@ def execute_connection(
     )
 
     insert_raw_data = text ("""
-    MERGE INTO xiv_data.raw_data t
+    MERGE INTO xiv_data.recently_updated t
         USING (
         VALUES (:itemid, :lastuploadtime, :ingested_at, :worldid)
         ) AS s (itemid, lastuploadtime, ingested_at, worldid)
@@ -118,7 +133,7 @@ def execute_connection(
     )
 
     insert_name_data = text("""
-        MERGE INTO xiv_data.name_data AS t
+        MERGE INTO xiv_data.id_names AS t
         USING (
             VALUES (:itemid)
         ) AS s (itemid)
@@ -133,10 +148,64 @@ def execute_connection(
             VALUES (s.itemid);
     """)
 
+    insert_finance_data = text(
+        """
+        MERGE INTO xiv_data.finance_data t
+            USING (
+            VALUES (
+                :worldid,
+                :itemid,
+                :minlisting_price,
+                :recentpurchase_price,
+                :average_sale_price,
+                :daily_sale_velocity,
+                :approx_gil_per_day
+            )
+            ) AS s (
+                worldid,
+                itemid,
+                minlisting_price,
+                recentpurchase_price,
+                average_sale_price,
+                daily_sale_velocity,
+                approx_gil_per_day
+            )
+        ON t.worldid = s.worldid AND t.itemid = s.itemid
+
+        WHEN MATCHED THEN
+            UPDATE SET
+                minlisting_price = s.minlisting_price,
+                recentpurchase_price = s.recentpurchase_price,
+                average_sale_price = s.average_sale_price,
+                daily_sale_velocity = s.daily_sale_velocity,
+                approx_gil_per_day = s.approx_gil_per_day
+
+        WHEN NOT MATCHED THEN
+            INSERT (
+                worldid,
+                itemid,
+                minlisting_price,
+                recentpurchase_price,
+                average_sale_price,
+                daily_sale_velocity,
+                approx_gil_per_day
+            )
+            VALUES (
+                s.worldid,
+                s.itemid,
+                s.minlisting_price,
+                s.recentpurchase_price,
+                s.average_sale_price,
+                s.daily_sale_velocity,
+                s.approx_gil_per_day
+            );
+        """
+    )
+
     extract_namedata = text (
         """
     select *
-    from xiv_data.name_data
+    from xiv_data.id_names
     where itemname IS NULL
     """)
 
@@ -155,8 +224,12 @@ def execute_connection(
         conn.execute(create_db)
         conn.execute(insert_worlds, rows_worlds)
         log.info("inserting table data.")
-        conn.execute(insert_raw_data, rows_data)
-        conn.execute(insert_name_data, rows_name)
+        try:
+            conn.execute(insert_raw_data, rows_data)
+            conn.execute(insert_name_data, rows_name)
+            conn.execute(insert_finance_data, rows_finance)
+        except Exception as e:
+            log.error(e)
         log.info("Pruning data with no itemnames.")
         response = conn.execute(extract_namedata)
         return response.mappings().all()

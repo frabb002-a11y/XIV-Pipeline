@@ -1,5 +1,4 @@
 import logging
-import time
 
 import requests
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -12,9 +11,7 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
-
-        
+ 
 def fetch_data(world: str = 'Louisoix', *, timeout_s: int = 10) -> list[dict[str, int | str]]:
     response = requests.get(
         'https://universalis.app/api/v2/extra/stats/most-recently-updated',
@@ -50,6 +47,27 @@ def extract():
 
     log.info("Successfully imported from %d out of %d worlds.", success_count, len(world_list))
     return success
+
+
+def extract_financial(grouped_itemids_by_world: dict[str, list[int]]):
+    
+    def batch(world: str):
+        items = ""
+        for item in grouped_itemids_by_world[world]:
+            items = str(item) + "," + items
+        items = items[:-1]
+        url = f"https://universalis.app/api/v2/aggregated/{world}/{items}"
+        response = requests.get(url)
+        response.raise_for_status()
+        return response.json()
+
+    with ThreadPoolExecutor(20) as executioner:
+        execution = executioner.map(batch, grouped_itemids_by_world)
+        log.info("Fetching finanical data.")
+        all_worlds_data = list(zip(grouped_itemids_by_world, execution))
+
+    log.info("Extracted finanical data.")
+    return all_worlds_data
 
 if __name__ == "__main__":
     print(extract())

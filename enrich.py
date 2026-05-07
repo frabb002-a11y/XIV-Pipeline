@@ -22,8 +22,6 @@ def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None =
     if engine is None:
         engine = prime_connection()
         
-    
-    
     updated_namedata = {
         'itemid': [],
         'itemname' : []
@@ -55,7 +53,7 @@ def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None =
 
     insert_new_names = text(
         """
-        MERGE INTO xiv_data.name_data AS t
+        MERGE INTO xiv_data.id_names AS t
         USING (
             VALUES (:itemid, :itemname)
         ) AS s (itemid, itemname)
