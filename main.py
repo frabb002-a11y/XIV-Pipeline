@@ -43,8 +43,11 @@ if __name__ == "__main__":
 # error handling
 # scale the project to handle multiple worlds
 # logging
-# update datamodel to include finanicial infomation, recently imported and a historical table
-
+# run tracking, retry, remove drops,
+# README
+# Architecture
+# How to run it
+# Repository structure (clean it up slightly)
 
 # include financial infomation so
 
