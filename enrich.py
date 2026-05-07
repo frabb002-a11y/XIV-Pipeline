@@ -30,7 +30,7 @@ def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None =
     for item in null_namedata:
         updated_namedata['itemid'].append(item['itemid'])
 
-    log.info("fetching name data for unknown names, this may take a few seconds...")
+    log.info('Fetching name data for unknown names. This may take a few seconds.')
 
     def fetch_name(itemid):
         url = f"https://v2.xivapi.com/api/sheet/Item/{itemid}?fields=Name"
@@ -42,10 +42,10 @@ def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None =
         start = time.time()
         updated_namedata['itemname'] = list(executioner.map(fetch_name,updated_namedata['itemid']))
         end = time.time()
-        execution = f"execution time: {round((end - start), 2)} seconds"
+        execution = f'Execution time: {round((end - start), 2)} seconds.'
         log.info(execution)
 
-    log.info("updating namedata.")
+    log.info('Updating name data.')
 
     df_updated_namedata = pd.DataFrame(updated_namedata)
     rows_inserting_namedata = df_updated_namedata.to_dict("records")
@@ -70,10 +70,10 @@ def enrich_data(null_namedata: list[dict] | None = None, engine: Engine | None =
         """
     )
 
-    log.info("namedata updated and uploaded to database.")
+    log.info('Name data updated and uploaded to database.')
     with engine.begin() as conn:
         conn.execute(insert_new_names,rows_inserting_namedata)
-    log.info("complete.")
+    log.info('Complete.')
 
 if __name__ == "__main__":
     enrich_data()

@@ -2,7 +2,8 @@ from typing import Any
 from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 import os
-from config import DATABASE_URL, dev_overiding
+from config import dev_overiding
+from password import DATABASE_URL
 import logging
 
 logging.basicConfig(
@@ -12,20 +13,20 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 def prime_connection(db_url: str | None = None, ECHO: bool = False, connect_timeout_s: int = 5) -> Engine:
-    log.info("Creating engine to connect to database.")
+    log.info('Creating engine to connect to database.')
     if db_url is None:
         db_url = os.getenv("DATABASE_URL")
-    log.info("Fetching database url.")
+    log.info('Fetching database URL.')
     try:
         engine = create_engine(db_url, echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
         return engine
     except Exception as e:
-        log.info("Cannot fetch database url, Running Local mode.")
+        log.info('Cannot fetch database URL. Running local mode.')
         try:
             engine = create_engine(DATABASE_URL(), echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
             return engine
         except Exception as e2:
-            log.error("internal database url is invalid, please check password.py.")
+            log.error('Internal database URL is invalid. Please check password.py.')
             raise ValueError()
 
 
@@ -51,7 +52,7 @@ def execute_connection(
     if engine is None:
         engine = prime_connection()
 
-    log.info("Creating database.")
+    log.info('Creating database.')
 
     reset = text ( """
     DROP TABLE IF EXISTS xiv_data.id_names;
@@ -212,25 +213,25 @@ def execute_connection(
     try:
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
-            log.info("Connection to database successful.")
+            log.info('Connection to database successful.')
     except Exception:
         raise ValueError("DB connection failed (likely bad password.)")
     
     with engine.begin() as conn:
         if dev_mode == True:        
-            log.info("devmode: resetting database.")
+            log.info('Dev mode: Resetting database.')
             conn.execute(reset)
-        log.info("creating database and datatables.")
+        log.info('Creating database and data tables.')
         conn.execute(create_db)
         conn.execute(insert_worlds, rows_worlds)
-        log.info("inserting table data.")
+        log.info('Inserting table data.')
         try:
             conn.execute(insert_raw_data, rows_data)
             conn.execute(insert_name_data, rows_name)
             conn.execute(insert_finance_data, rows_finance)
         except Exception as e:
             log.error(e)
-        log.info("Pruning data with no itemnames.")
+        log.info('Pruning data with missing item names.')
         response = conn.execute(extract_namedata)
         return response.mappings().all()
 
