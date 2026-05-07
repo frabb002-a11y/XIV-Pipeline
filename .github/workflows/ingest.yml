@@ -2,12 +2,17 @@ name: XIV Pipeline
 
 on:
   schedule:
-    - cron: "0 * * * *"   # runs every hour
+    - cron: "*/10 * * * *"   # runs every 10 minutes
   workflow_dispatch:      # allows manual runs
+
+concurrency:
+  group: xiv-pipeline-ingest
+  cancel-in-progress: false
 
 jobs:
   run-pipeline:
     runs-on: ubuntu-latest
+    timeout-minutes: 9
 
     steps:
       - name: Checkout repo

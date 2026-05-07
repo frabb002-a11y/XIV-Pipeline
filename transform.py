@@ -124,7 +124,7 @@ def transform_financial(all_worlds_data, worldname_to_id: dict[str, int]) -> pd.
                 finance_data["approx_gil_per_day"].append(float(average_sale_price) * float(daily_sale_velocity))
             except (TypeError, ValueError):
                 finance_data["approx_gil_per_day"].append(None)
-
+    log.info("Transformed finanical data.")
     return pd.DataFrame(finance_data)
 
 def main():

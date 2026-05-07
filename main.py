@@ -23,7 +23,6 @@ def main():
     log.info("preparing finance data transformation.")
     all_worlds_data = extract_financial(grouped_itemids_by_world)
     df_finance = transform_financial(all_worlds_data, worldname_to_id)
-    log.info("Transformed finanical data.")
     rows_data = df_cleaned.to_dict("records")
     rows_name = df_names.to_dict("records")
     rows_worlds = df_worlds.to_dict("records")
