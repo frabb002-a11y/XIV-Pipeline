@@ -3,7 +3,6 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 import os
 from config import dev_overiding
-from password import DATABASE_URL
 import logging
 
 logging.basicConfig(
@@ -23,11 +22,12 @@ def prime_connection(db_url: str | None = None, ECHO: bool = False, connect_time
     except Exception as e:
         log.info('Cannot fetch database URL. Running local mode.')
         try:
+            from password import DATABASE_URL
             engine = create_engine(DATABASE_URL(), echo=ECHO, connect_args = {"connect_timeout": connect_timeout_s})
             return engine
         except Exception as e2:
-            log.error('Internal database URL is invalid. Please check password.py.')
-            raise ValueError()
+            log.error('Invalid password in scheduling environment.')
+            raise ValueError('Invalid password in scheduling environment.') from e2
 
 
 def execute_connection(
